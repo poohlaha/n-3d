@@ -1,0 +1,54 @@
+{
+  "productName": "n-3d",
+  "version": "1.0.0",
+  "identifier": "com.3d",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:9200",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../../n-3d-web/dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "n-3d",
+        "fullscreen": false,
+        "resizable": true,
+        "minWidth": 1024,
+        "minHeight": 800,
+        "width": 1024,
+        "height": 800,
+        "transparent": true,
+        "minimizable": true,
+        "closable": true,
+        "skipTaskbar": false,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "capabilities": [
+        "default-capability",
+        "desktop-capability"
+      ]
+    }
+  },
+  "bundle": {
+    "publisher": "poohlaha",
+    "active": true,
+    "targets": "all",
+    "licenseFile": "./LICENSE",
+    "icon": [
+      "icons/32x32.svg",
+      "icons/128x128.svg",
+      "icons/128x128@2x.svg",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist",
+      "exceptionDomain": ""
+    }
+  }
+}
