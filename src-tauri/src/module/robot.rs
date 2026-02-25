@@ -15,6 +15,7 @@
     ```
 */
 
+use crate::module::grid::{Grid, GridPoint, GridResultPoint};
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -72,7 +73,7 @@ impl Robot {
         info!("Robot created!");
         Self {
             current: Vec3 { x: start_x, y: 0f32, z: start_z },
-            target: Vec3 { x: start_x, z: start_z, y: 0f32 },
+            target: Vec3 { x: start_x, y: 0f32, z: start_z },
             is_moving: false,
             rotation_y: 0f32,
             action: RobotAction::Idle,
@@ -125,7 +126,7 @@ impl Robot {
         self.current.x += dir_x * max_step;
         self.current.z += dir_z * max_step;
 
-        println!("current: {:#?}", self.current);
+        println!("current: {:?}", self.current);
     }
 
     // 设置动作
@@ -171,6 +172,10 @@ impl Robot {
 
     pub fn get_current(&self) -> Vec3 {
         self.current
+    }
+
+    pub fn get_point(&self) -> GridResultPoint {
+        Grid::grid_to_world(&GridPoint { gx: self.current.x, gz: self.current.z })
     }
 
     pub fn get_target(&self) -> Vec3 {

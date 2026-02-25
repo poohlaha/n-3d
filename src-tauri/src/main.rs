@@ -10,11 +10,20 @@ mod module;
 
 use std::sync::Mutex;
 
+use crate::module::grid::Grid;
 use crate::module::robot::Robot;
 use crate::system::tray::Tray;
-use exports::{grid_to_world, on_update_robot_position, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
+use exports::{get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_robot_action, set_robot_emote, set_robot_target, world_to_grid, set_place_flag};
 
 const PROJECT_NAME: &str = "n-3d";
+
+pub const WIDTH: f32 = 200f32;
+pub const HEIGHT: f32 = 200f32;
+
+pub const CHARACTER_OCCUPY_WIDTH: f32 = 2f32;
+pub const CHARACTER_OCCUPY_HEIGHT: f32 = 2f32;
+
+pub const SPEED: f32 = 2.0f32;
 
 // 日志目录: /Users/xxx/Library/Logs/n-3d
 // 程序配置目录: /Users/xxx/Library/Application Support/n-3d
@@ -34,8 +43,19 @@ fn main() {
 
             Ok(())
         })
-        .manage(Mutex::new(Robot::new(0.0, 0.0, 2.0))) // 初始在中心
-        .invoke_handler(tauri::generate_handler![world_to_grid, grid_to_world, set_robot_target, on_update_robot_position, set_robot_action, set_robot_emote])
+        .manage(Mutex::new(Robot::new(0.0, 0.0, SPEED))) // 初始在中心
+        .manage(Mutex::new(Grid::new(WIDTH, HEIGHT))) // 初始化 Grid
+        .invoke_handler(tauri::generate_handler![
+            world_to_grid,
+            grid_to_world,
+            set_robot_target,
+            on_update_robot_position,
+            set_robot_action,
+            set_robot_emote,
+            get_robot_point,
+            get_init_props,
+            set_place_flag
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
