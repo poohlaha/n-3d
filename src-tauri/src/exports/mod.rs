@@ -1,6 +1,6 @@
 //! 导出方法
 
-use crate::module::grid::{Grid, GridPoint, GridProps, GridResultPoint, ThreeGrid, ThreeGridResultPoint};
+use crate::module::grid::{Grid, GridPoint, GridProps, GridResultPoint, Pillar, RockData, ThreeGrid, ThreeGridResultPoint};
 use crate::module::robot::{Robot, RobotState};
 use std::sync::Mutex;
 use tauri::State;
@@ -66,7 +66,21 @@ pub fn set_robot_emote(emote: String, robot: State<Mutex<Robot>>) {
 
 // 放置小红旗
 #[tauri::command]
-pub fn set_place_flag(x: f32, z: f32, grid: State<Mutex<Grid>>) -> Result<bool, String>  {
+pub fn set_place_flag(x: f32, z: f32, grid: State<Mutex<Grid>>) -> Result<bool, String> {
     let mut grid = grid.lock().map_err(|_| "Mutex grid poisoned")?;
     Ok(grid.place_flag(x, z))
+}
+
+// 随机生成石头
+#[tauri::command]
+pub fn generate_rocks(num_rocks: usize, grid: State<Mutex<Grid>>) -> Result<Vec<RockData>, String> {
+    let mut grid = grid.lock().map_err(|_| "Mutex grid poisoned")?;
+    Ok(grid.generate_rocks(num_rocks))
+}
+
+// 随机生成柱子
+#[tauri::command]
+pub fn generate_pillars(nums: usize, grid: State<Mutex<Grid>>) -> Result<Vec<Pillar>, String> {
+    let mut grid = grid.lock().map_err(|_| "Mutex grid poisoned")?;
+    Ok(grid.generate_pillars(nums))
 }

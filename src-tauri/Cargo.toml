@@ -83,6 +83,7 @@ infer = "0.19"
 handlers = {git = "https://github.com/poohlaha/rust-tools", branch = "main", package = "handlers", version = "0.1.2"}
 docker = {git = "https://github.com/poohlaha/rust-tools", branch = "main", package = "docker", version = "0.1.5"}
 sftp = {git = "https://github.com/poohlaha/rust-tools", branch = "main", package = "sftp", version = "0.1.9"}
+rand = "0.9.2"
 
 # images-compressor = "1.0.3"
 

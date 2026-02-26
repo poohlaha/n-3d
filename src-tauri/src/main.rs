@@ -13,7 +13,7 @@ use std::sync::Mutex;
 use crate::module::grid::Grid;
 use crate::module::robot::Robot;
 use crate::system::tray::Tray;
-use exports::{get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_robot_action, set_robot_emote, set_robot_target, world_to_grid, set_place_flag};
+use exports::{generate_pillars, generate_rocks, get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_place_flag, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
 
 const PROJECT_NAME: &str = "n-3d";
 
@@ -22,6 +22,9 @@ pub const HEIGHT: f32 = 200f32;
 
 pub const CHARACTER_OCCUPY_WIDTH: f32 = 2f32;
 pub const CHARACTER_OCCUPY_HEIGHT: f32 = 2f32;
+
+// 柱子占用 2 * 2 格
+pub const PILLAR_SIZE: usize = 2;
 
 pub const SPEED: f32 = 2.0f32;
 
@@ -44,7 +47,7 @@ fn main() {
             Ok(())
         })
         .manage(Mutex::new(Robot::new(0.0, 0.0, SPEED))) // 初始在中心
-        .manage(Mutex::new(Grid::new(WIDTH, HEIGHT))) // 初始化 Grid
+        .manage(Mutex::new(Grid::new(WIDTH as usize, HEIGHT as usize))) // 初始化 Grid
         .invoke_handler(tauri::generate_handler![
             world_to_grid,
             grid_to_world,
@@ -54,7 +57,9 @@ fn main() {
             set_robot_emote,
             get_robot_point,
             get_init_props,
-            set_place_flag
+            set_place_flag,
+            generate_rocks,
+            generate_pillars
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
