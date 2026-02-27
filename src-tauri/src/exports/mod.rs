@@ -1,7 +1,7 @@
 //! 导出方法
 
 use crate::module::grid::{Grid, GridPoint, GridProps, GridResultPoint, Pillar, RockData, ThreeGrid, ThreeGridResultPoint};
-use crate::module::robot::{Robot, RobotState};
+use crate::module::robot::{Robot, RobotState, Vec3};
 use std::sync::Mutex;
 use tauri::State;
 
@@ -42,11 +42,21 @@ pub fn on_update_robot_position(delta: f32, robot: State<Mutex<Robot>>) -> Robot
 }
 
 #[tauri::command]
-pub fn set_robot_target(x: f32, z: f32, robot: State<Mutex<Robot>>) -> Result<(), String> {
+pub fn set_robot_target(x: f32, z: f32, robot: State<Mutex<Robot>>, grid: State<Mutex<Grid>>) -> Result<Vec<Vec3>, String> {
     let mut robot = robot.lock().map_err(|_| "Mutex robot poisoned")?;
-    robot.set_target(x, z);
+    let grid = grid.lock().map_err(|_| "Mutex grid poisoned")?;
+    let points = robot.set_target(&grid, x, z);
 
     println!("Robot target updated to: ({}, {})", x, z);
+    Ok(points)
+}
+
+// 清除路径
+#[tauri::command]
+pub fn clear_robot_path(robot: State<Mutex<Robot>>) -> Result<(), String> {
+    let mut robot = robot.lock().map_err(|_| "Mutex robot poisoned")?;
+    robot.clear_path();
+
     Ok(())
 }
 

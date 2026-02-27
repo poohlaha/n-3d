@@ -15,6 +15,7 @@
     ```
 */
 
+use crate::module::a::astar;
 use crate::module::grid::{Grid, GridPoint, GridResultPoint};
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -43,12 +44,12 @@ pub enum RobotEmote {
 
 #[derive(Serialize, Clone, Copy, Debug, Deserialize)]
 pub struct Vec3 {
-    x: f32,
-    y: f32,
-    z: f32,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, Deserialize)]
+#[derive(Serialize, Clone, Debug, Deserialize)]
 pub struct Robot {
     current: Vec3,
     target: Vec3,
@@ -57,6 +58,8 @@ pub struct Robot {
     rotation_y: f32,
     action: RobotAction,
     emote: RobotEmote,
+    path: Vec<Vec3>,
+    path_index: usize,
 }
 
 #[derive(Serialize, Clone, Copy, Debug, Deserialize)]
@@ -78,14 +81,43 @@ impl Robot {
             rotation_y: 0f32,
             action: RobotAction::Idle,
             emote: RobotEmote::None,
+            path: vec![],
             speed,
+            path_index: 0,
         }
     }
 
     // 设置目标格子
-    pub fn set_target(&mut self, x: f32, z: f32) {
-        self.target = Vec3 { x, z, y: 0f32 };
-        self.is_moving = true;
+    pub fn set_target(&mut self, grid: &Grid, x: f32, z: f32) -> Vec<Vec3> {
+        let start = self.current;
+        let goal = Vec3 { x, y: 0.0, z };
+        if let Some(path) = astar(grid, start, goal) {
+            self.path = path.into_iter().map(|p| Vec3 { x: p.x, y: 0.0, z: p.z }).collect();
+
+            self.path_index = 0;
+
+            if !self.path.is_empty() {
+                self.target = self.path[0];
+                self.is_moving = true;
+            }
+        } else {
+            info!("A* 无法到达目标");
+        }
+
+        // self.target = Vec3 { x, z, y: 0f32 };
+        // self.is_moving = true;
+
+        self.path.clone()
+    }
+
+    // 清除路径
+    pub fn clear_path(&mut self) {
+        self.path.clear();
+        self.path_index = 0;
+        self.is_moving = false;
+
+        // 让目标回到当前位置
+        // self.target = self.current;
     }
 
     /*
@@ -111,8 +143,18 @@ impl Robot {
         // 本帧最大可移动距离
         let max_step = self.speed * delta;
         if distance <= max_step {
+            // self.current = self.target;
+            // self.is_moving = false;
             self.current = self.target;
-            self.is_moving = false;
+
+            self.path_index += 1;
+
+            if self.path_index >= self.path.len() {
+                self.is_moving = false;
+                return;
+            }
+
+            self.target = self.path[self.path_index];
             info!("到达目标，停止移动 ...");
             return;
         }
@@ -175,7 +217,10 @@ impl Robot {
     }
 
     pub fn get_point(&self) -> GridResultPoint {
-        Grid::grid_to_world(&GridPoint { gx: self.current.x, gz: self.current.z })
+        Grid::grid_to_world(&GridPoint {
+            gx: self.current.x as i32,
+            gz: self.current.z as i32,
+        })
     }
 
     pub fn get_target(&self) -> Vec3 {

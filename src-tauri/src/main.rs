@@ -13,7 +13,7 @@ use std::sync::Mutex;
 use crate::module::grid::Grid;
 use crate::module::robot::Robot;
 use crate::system::tray::Tray;
-use exports::{generate_pillars, generate_rocks, get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_place_flag, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
+use exports::{clear_robot_path, generate_pillars, generate_rocks, get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_place_flag, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
 
 const PROJECT_NAME: &str = "n-3d";
 
@@ -59,7 +59,8 @@ fn main() {
             get_init_props,
             set_place_flag,
             generate_rocks,
-            generate_pillars
+            generate_pillars,
+            clear_robot_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

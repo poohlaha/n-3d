@@ -7,7 +7,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
-struct GridCell {
+pub struct GridCell {
     pub occupied: bool,       // 机器人占用
     pub has_flag: bool,       // 是否有红旗
     pub blocked: bool,        // 是否是障碍物（墙等）
@@ -30,16 +30,16 @@ pub struct Pillar {
     pub size: f32, // 占用格子尺寸（假设 2 表示 2x2）
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct GridPoint {
-    pub gx: f32,
-    pub gz: f32,
+    pub gx: i32,
+    pub gz: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ThreeGrid {
-    x: f32,
-    z: f32,
+    pub x: f32,
+    pub z: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -50,8 +50,8 @@ pub struct ThreeGridResultPoint {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GridResultPoint {
-    x: f32,
-    z: f32,
+    x: i32,
+    z: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -197,25 +197,25 @@ impl Grid {
     }
 
     // 映射 -100~100 → 0..width-1/0..height-1
-    fn point_to_cell(&self, x: f32, z: f32) -> Option<GridPoint> {
-        let gx = (x + self.width as f32 / 2.0).floor() as isize;
-        let gz = (z + self.height as f32 / 2.0).floor() as isize;
+    pub fn point_to_cell(&self, x: f32, z: f32) -> Option<GridPoint> {
+        let gx = (x + self.width as f32 / 2.0).floor() as i32;
+        let gz = (z + self.height as f32 / 2.0).floor() as i32;
 
         // 越界检查
         if gx < 0 || gz < 0 {
             return None;
         }
 
-        if gx >= self.width as isize || gz >= self.height as isize {
+        if gx >= self.width as i32 || gz >= self.height as i32 {
             return None;
         }
 
-        Some(GridPoint { gx: gx as f32, gz: gz as f32 })
+        Some(GridPoint { gx, gz })
     }
 
     // 映射 0..width-1/0..height-1 → -100~100
     // 映射到世界坐标 -width/2..width/2, -height/2..height/2
-    fn cell_to_point(&self, gx: usize, gz: usize) -> ThreeGrid {
+    pub fn cell_to_point(&self, gx: usize, gz: usize) -> ThreeGrid {
         let x = gx as f32 - self.width as f32 / 2.0;
         let z = gz as f32 - self.height as f32 / 2.0;
 
@@ -348,14 +348,22 @@ impl Grid {
             let center_z = (min_z + max_z) / 2.0;
 
             // 转 Three.js 世界坐标
-            let world_point = Grid::grid_to_world(&GridPoint { gx: center_x, gz: center_z });
+            let world_point = Grid::grid_to_world(&GridPoint { gx: center_x as i32, gz: center_z as i32 });
 
             self.rocks.push(RockData {
-                position: (world_point.x, 0.0, world_point.z),
+                position: (world_point.x as f32, 0.0, world_point.z as f32),
                 scale: (width as f32, 1.0, height as f32), // Y 保持原高度
             });
         }
 
         self.rocks.clone()
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
     }
 }
