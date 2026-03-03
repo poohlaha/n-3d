@@ -69,6 +69,8 @@ pub struct RobotState {
     pub is_moving: bool,
     #[serde(rename = "rotationY")]
     pub rotation_y: f32, // 朝向
+    #[serde(rename = "pathIndex")]
+    pub path_index: usize, // 路径
 }
 
 impl Robot {
@@ -89,9 +91,19 @@ impl Robot {
 
     // 设置目标格子
     pub fn set_target(&mut self, grid: &Grid, x: f32, z: f32) -> Vec<Vec3> {
+        // 如果正在移动，先对齐到当前目标格
+        if self.is_moving {
+            info!("机器人正在移动, 重新设置终点 ...");
+        }
+
         let start = self.current;
         let goal = Vec3 { x, y: 0.0, z };
-        if let Some(path) = astar(grid, start, goal) {
+
+        if let Some(mut path) = astar(grid, start, goal) {
+            if !path.is_empty() {
+                path.remove(0);
+            }
+
             self.path = path.into_iter().map(|p| Vec3 { x: p.x, y: 0.0, z: p.z }).collect();
 
             self.path_index = 0;
@@ -99,9 +111,12 @@ impl Robot {
             if !self.path.is_empty() {
                 self.target = self.path[0];
                 self.is_moving = true;
+            } else {
+                self.is_moving = false;
             }
         } else {
             info!("A* 无法到达目标");
+            self.is_moving = false;
         }
 
         // self.target = Vec3 { x, z, y: 0f32 };
@@ -143,6 +158,7 @@ impl Robot {
         // 本帧最大可移动距离
         let max_step = self.speed * delta;
         if distance <= max_step {
+            info!("update distance: {}, max_step: {}", distance, max_step);
             // self.current = self.target;
             // self.is_moving = false;
             self.current = self.target;
@@ -233,5 +249,9 @@ impl Robot {
 
     pub fn get_rotation_y(&self) -> f32 {
         self.rotation_y
+    }
+
+    pub fn get_path_index(&self) -> usize {
+        self.path_index
     }
 }

@@ -38,6 +38,7 @@ pub fn on_update_robot_position(delta: f32, robot: State<Mutex<Robot>>) -> Robot
         position: robot.get_current(),
         is_moving: robot.get_moving(),
         rotation_y: robot.get_rotation_y(),
+        path_index: robot.get_path_index(),
     }
 }
 

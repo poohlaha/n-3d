@@ -75,7 +75,7 @@ fn get_neighbors(grid: &Grid, p: GridPoint) -> Vec<(GridPoint, f64)> {
 
         // 目标格子是否 blocked
         let cell = grid.get_cell(nx as usize, nz as usize);
-        if cell.blocked {
+        if cell.blocked || cell.occupied {
             continue;
         }
 
