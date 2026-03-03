@@ -150,7 +150,7 @@ pub fn astar(grid: &Grid, start_world: Vec3, goal_world: Vec3) -> Option<Vec<Thr
             let mut world_path = Vec::new();
 
             for cell in grid_path {
-                let world = grid.cell_to_point(cell.gx as usize, cell.gz as usize);
+                let world = grid.cell_to_point(cell.gx as f32, cell.gz as f32);
                 world_path.push(world);
             }
 

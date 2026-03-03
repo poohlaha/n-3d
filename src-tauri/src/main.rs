@@ -8,14 +8,13 @@ mod system;
 
 mod module;
 
-use std::sync::Mutex;
-
 use crate::module::grid::Grid;
 use crate::module::robot::Robot;
 use crate::system::tray::Tray;
-use exports::{clear_robot_path, generate_pillars, generate_rocks, get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_place_flag, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
+use exports::{clear_obstacles, clear_robot_path, generate_pillars, generate_rocks, get_init_props, get_robot_point, grid_to_world, on_update_robot_position, set_place_flag, set_robot_action, set_robot_emote, set_robot_target, world_to_grid};
+use std::sync::Mutex;
 
-const PROJECT_NAME: &str = "n-3d";
+// const PROJECT_NAME: &str = "n-3d";
 
 pub const WIDTH: f32 = 200f32;
 pub const HEIGHT: f32 = 200f32;
@@ -25,6 +24,10 @@ pub const CHARACTER_OCCUPY_HEIGHT: f32 = 2f32;
 
 // 柱子占用 2 * 2 格
 pub const PILLAR_SIZE: usize = 2;
+
+pub const ROCK_SIZE_WITH: usize = 8;
+
+pub const ROCK_SIZE_DEPTH: usize = 4;
 
 pub const SPEED: f32 = 2.0f32;
 
@@ -42,7 +45,7 @@ fn main() {
             // 创建系统托盘
             Tray::builder(app);
 
-            let app_handle = app.handle();
+            // let app_handle = app.handle();
 
             Ok(())
         })
@@ -60,7 +63,8 @@ fn main() {
             set_place_flag,
             generate_rocks,
             generate_pillars,
-            clear_robot_path
+            clear_robot_path,
+            clear_obstacles
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

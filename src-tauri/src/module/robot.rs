@@ -239,10 +239,6 @@ impl Robot {
         })
     }
 
-    pub fn get_target(&self) -> Vec3 {
-        self.target
-    }
-
     pub fn get_moving(&self) -> bool {
         self.is_moving
     }

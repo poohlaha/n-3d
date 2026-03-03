@@ -2,9 +2,10 @@
 机器人占用格子
 */
 
-use crate::{CHARACTER_OCCUPY_HEIGHT, CHARACTER_OCCUPY_WIDTH, HEIGHT, PILLAR_SIZE, WIDTH};
+use crate::{CHARACTER_OCCUPY_HEIGHT, CHARACTER_OCCUPY_WIDTH, HEIGHT, WIDTH};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::cmp::PartialEq;
 
 #[derive(Debug)]
 pub struct GridCell {
@@ -18,16 +19,24 @@ pub struct Grid {
     width: usize,
     height: usize,
     cells: Vec<GridCell>,
-    rocks: Vec<RockData>,
-    pillars: Vec<Pillar>,
+    obstacles: Vec<Obstacle>,
 }
 
-// 柱子
+// 障碍物
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct Pillar {
-    pub x: f32,    // 柱子在 grid 中左上角格子坐标 X
-    pub z: f32,    // 柱子在 grid 中左上角格子坐标 Z
-    pub size: f32, // 占用格子尺寸（假设 2 表示 2x2）
+pub struct Obstacle {
+    pub x: f32,       // 柱子在 grid 中左上角格子坐标 X
+    pub z: f32,       // 柱子在 grid 中左上角格子坐标 Z
+    pub width: usize, // 占用格子尺寸宽度
+    pub depth: usize, // 占用格子尺寸高度
+    pub kind: ObstacleType,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ObstacleType {
+    Pillar,
+    Rock,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -64,12 +73,6 @@ pub struct GridProps {
     character_occupy_height: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct RockData {
-    position: (f32, f32, f32),
-    scale: (f32, f32, f32),
-}
-
 impl Grid {
     pub fn new(width: usize, height: usize) -> Self {
         let total = width * height;
@@ -83,13 +86,7 @@ impl Grid {
             });
         }
 
-        Self {
-            width,
-            height,
-            cells,
-            rocks: Vec::new(),
-            pillars: Vec::new(),
-        }
+        Self { width, height, cells, obstacles: Vec::new() }
     }
 
     /**
@@ -215,9 +212,9 @@ impl Grid {
 
     // 映射 0..width-1/0..height-1 → -100~100
     // 映射到世界坐标 -width/2..width/2, -height/2..height/2
-    pub fn cell_to_point(&self, gx: usize, gz: usize) -> ThreeGrid {
-        let x = gx as f32 - self.width as f32 / 2.0;
-        let z = gz as f32 - self.height as f32 / 2.0;
+    pub fn cell_to_point(&self, gx: f32, gz: f32) -> ThreeGrid {
+        let x = gx - self.width as f32 / 2.0;
+        let z = gz - self.height as f32 / 2.0;
 
         ThreeGrid { x, z }
     }
@@ -247,116 +244,88 @@ impl Grid {
         }
     }
 
-    // 清除柱子
-    pub fn clear_pillars(&mut self) {
-        // 清空柱子列表
-        self.pillars.clear();
+    // 清除石头|柱子
+    pub fn clear_obstacle(&mut self, kind: ObstacleType) {
+        // 删除 obstacles 里对应类型
+        self.obstacles.retain(|o| o.kind != kind);
+
+        let kind_str = match kind {
+            ObstacleType::Pillar => "pillar",
+            ObstacleType::Rock => "rock",
+        };
 
         // 清理格子被柱子占用的标记
         for cell in &mut self.cells {
-            if cell.blocked_type == "pillar" {
+            if cell.blocked_type == kind_str {
                 cell.blocked = false; // 柱子占用的格子恢复空闲
                 cell.blocked_type.clear();
             }
         }
     }
 
-    // 生成柱子
-    pub fn generate_pillars(&mut self, nums: usize) -> Vec<Pillar> {
+    // 清除所有障碍物
+    pub fn clear_obstacles(&mut self) {
+        self.obstacles.clear();
+
+        for cell in &mut self.cells {
+            if !cell.blocked_type.is_empty() {
+                cell.blocked = false;
+                cell.blocked_type.clear();
+            }
+        }
+    }
+
+    // 生成障碍物
+    pub fn generate_obstacle(&mut self, nums: usize, width: usize, depth: usize, kind: ObstacleType) -> Vec<Obstacle> {
         let mut rng = rand::rng();
-        self.clear_pillars();
+        self.clear_obstacle(kind);
 
         for _ in 0..nums {
             let mut placed = false;
 
             while !placed {
                 // 随机选择柱子左上角格子
-                let x = rng.random_range(0..self.width - PILLAR_SIZE);
-                let z = rng.random_range(0..self.height - PILLAR_SIZE);
+                let x = rng.random_range(0..self.width - width);
+                let z = rng.random_range(0..self.height - depth);
 
                 // 检查 2 * 2 区域是否空闲
                 let mut can_place = true;
-                for dx in 0..PILLAR_SIZE {
-                    for dz in 0..PILLAR_SIZE {
+                for dx in 0..width {
+                    for dz in 0..depth {
                         let cell = self.get_cell_mut(x + dx, z + dz);
                         if cell.blocked || cell.occupied || cell.has_flag {
                             can_place = false;
+                            break;
                         }
                     }
                 }
 
                 if can_place {
                     // 标记柱子占用的格子
-                    for dx in 0..PILLAR_SIZE {
-                        for dz in 0..PILLAR_SIZE {
+                    for dx in 0..width {
+                        for dz in 0..depth {
                             let cell = self.get_cell_mut(x + dx, z + dz);
                             cell.blocked = true;
-                            cell.blocked_type = "pillar".to_string();
+                            cell.blocked_type = match kind {
+                                ObstacleType::Pillar => "pillar".to_string(),
+                                ObstacleType::Rock => "rock".to_string(),
+                            };
                         }
                     }
 
-                    let center_gx = x as f32 + PILLAR_SIZE as f32 / 2.0;
-                    let center_gz = z as f32 + PILLAR_SIZE as f32 / 2.0;
+                    let center_gx = x as f32 + width as f32 / 2.0;
+                    let center_gz = z as f32 + depth as f32 / 2.0;
 
-                    let point = self.cell_to_point(center_gx as usize, center_gz as usize);
+                    let point = self.cell_to_point(center_gx, center_gz);
 
-                    // +0.5 是为了放到格子中心
-                    self.pillars.push(Pillar {
-                        x: point.x,
-                        z: point.z,
-                        size: PILLAR_SIZE as f32,
-                    });
+                    self.obstacles.push(Obstacle { x: point.x, z: point.z, width, depth, kind });
 
                     placed = true;
                 }
             }
         }
 
-        self.pillars.clone()
-    }
-
-    // 随机生成石头
-    pub fn generate_rocks(&mut self, num_rocks: usize) -> Vec<RockData> {
-        for _ in 0..num_rocks {
-            // 随机生成石头占用格子尺寸
-            let mut rng = rand::rng();
-            let width = rng.random_range(1..=5); // 生成 1 到 5
-            let height = rng.random_range(1..=5);
-
-            // 随机选择起始格子
-            // start_x 范围：0 ..= self.width - width - 1
-            let start_x = rng.random_range(0..=(self.width as usize - width));
-            let start_z = rng.random_range(0..=(self.height as usize - height));
-
-            // 计算占用格子
-            let mut cells = vec![];
-            for x in start_x..start_x + width {
-                for z in start_z..start_z + height {
-                    let cell = self.get_cell_mut(x, z);
-                    cell.occupied = true; // 标记占用
-                    cells.push((x as f32, z as f32));
-                }
-            }
-
-            // 计算中心格子
-            let min_x = start_x as f32;
-            let max_x = (start_x + width - 1) as f32;
-            let min_z = start_z as f32;
-            let max_z = (start_z + height - 1) as f32;
-
-            let center_x = (min_x + max_x) / 2.0;
-            let center_z = (min_z + max_z) / 2.0;
-
-            // 转 Three.js 世界坐标
-            let world_point = Grid::grid_to_world(&GridPoint { gx: center_x as i32, gz: center_z as i32 });
-
-            self.rocks.push(RockData {
-                position: (world_point.x as f32, 0.0, world_point.z as f32),
-                scale: (width as f32, 1.0, height as f32), // Y 保持原高度
-            });
-        }
-
-        self.rocks.clone()
+        self.obstacles.clone()
     }
 
     pub fn width(&self) -> usize {
